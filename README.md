@@ -114,14 +114,18 @@ this project to a GitHub, GitLab, or Bitbucket repo first.
 1. Push this repo to GitHub (or GitLab/Bitbucket).
 2. In the Render Dashboard: **New → Blueprint**, and connect that repo. Render reads
    `render.yaml` from the repo root automatically.
-3. Render will prompt you for the one variable marked `sync: false` — `ADMIN_PASSWORD_HASH`.
-   Generate it locally first:
+3. Render will prompt you for `ADMIN_PASSWORD_HASH` plus the notification variables (all marked
+   `sync: false` in `render.yaml`). Generate the password hash locally first:
    ```bash
    cd backend && npm install && npm run hash-password -- "choose-a-strong-password"
    ```
    Paste the printed hash in when Render asks for it. (`JWT_SECRET` is generated for you
    automatically; `FRONTEND_ORIGIN` and `VITE_API_URL` are filled in from each service's actual
-   deployed URL — that's what the `fromService` entries in `render.yaml` do.)
+   deployed URL — that's what the `fromService` entries in `render.yaml` do.) The notification
+   variables (`GMAIL_USER`, `GMAIL_APP_PASSWORD`, `ADMIN_NOTIFY_EMAIL`, `WHATSAPP_ACCESS_TOKEN`,
+   `WHATSAPP_PHONE_NUMBER_ID`, `ADMIN_WHATSAPP_NUMBER`) are optional — leave any of them blank in
+   the prompt and that channel is simply skipped. See "Notifications" in `backend/README.md` for
+   how to obtain each one.
 4. Click **Deploy Blueprint**. Render builds and deploys both services, no billing/subscription
    required.
 5. Once both are live, visit the frontend's `.onrender.com` URL, and `/admin` to sign in with the
@@ -211,6 +215,10 @@ store otherwise. You don't need to change any code — just connect the integrat
      also expose the API separately
    - `VITE_API_URL` — set to an **empty string**. Frontend and backend share one origin in this
      setup, so the app should call relative paths like `/api/consultations`, not an absolute URL.
+   - `GMAIL_USER`, `GMAIL_APP_PASSWORD`, `ADMIN_NOTIFY_EMAIL`, `WHATSAPP_ACCESS_TOKEN`,
+     `WHATSAPP_PHONE_NUMBER_ID`, `ADMIN_WHATSAPP_NUMBER` — optional; see "Notifications" in
+     `backend/README.md` for what each does and how to obtain them. Leave any of them out and that
+     notification channel is skipped automatically.
 5. Deploy. Visit the project's URL, and `/admin` to sign in.
 
 ### Why this needs its own storage path (and how to verify it)

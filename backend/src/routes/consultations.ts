@@ -2,6 +2,7 @@ import { Router } from "express";
 import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { consultationStore } from "../lib/store.js";
+import { notifyNewConsultation } from "../lib/notify.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import type { ConsultationStatus, Division } from "../types.js";
@@ -48,6 +49,10 @@ router.post("/", submitLimiter, async (req, res, next) => {
       division: parsed.data.division,
       message: parsed.data.message,
     });
+    // Notifications are best-effort: notifyNewConsultation catches its own errors internally
+    // (see Promise.allSettled in lib/notify.ts) and never throws, so a failed email/WhatsApp
+    // send can never turn a successfully saved consultation into a failed request.
+    await notifyNewConsultation(record);
     return res.status(201).json({ ok: true, id: record.id });
   } catch (err) {
     next(err instanceof Error ? err : new HttpError(500, "Could not save submission"));

@@ -18,6 +18,97 @@ npm run dev
 The API starts on `http://localhost:4000` by default. The frontend's `VITE_API_URL` should point
 here in development (see the frontend `.env.example`).
 
+## Notifications
+
+Every new consultation triggers up to four notifications, each independent and best-effort — if
+one channel isn't configured or fails, the others still send and the consultation is still saved
+either way:
+
+| Channel | Recipient | Purpose |
+|---|---|---|
+| Email | Admin (`ADMIN_NOTIFY_EMAIL`) | "New consultation from X" alert |
+| Email | Client (if `contact` looks like an email) | "We've received your request" confirmation |
+| WhatsApp | Admin (`ADMIN_WHATSAPP_NUMBER`) | Same alert, via WhatsApp |
+| WhatsApp | Client (if `contact` looks like a Kenyan phone number) | Same confirmation, via WhatsApp |
+
+This logic lives in `src/lib/notify.ts`, called once from the `POST /api/consultations` route
+after the record is saved. Any channel left unconfigured (missing env vars) is skipped with a
+console warning rather than failing the request — so you can turn these on one at a time.
+
+### Email setup (Gmail SMTP)
+
+Gmail requires an **App Password** for SMTP access — your normal Gmail password won't work, and
+this requires 2-Step Verification to be turned on for the account first.
+
+1. Turn on 2-Step Verification if it isn't already: [myaccount.google.com/security](https://myaccount.google.com/security).
+2. Go to [myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+3. Create a new App Password (name it something like "Skywalkers backend"). Google shows you a
+   16-character password once — copy it immediately.
+4. Set in `.env`:
+   ```
+   GMAIL_USER=mutwiriphillips@gmail.com
+   GMAIL_APP_PASSWORD=<the 16-character app password, no spaces>
+   ```
+5. Restart the backend. Submit a test consultation from the site and confirm both the admin alert
+   and (if you used an email as the contact) the client confirmation arrive.
+
+Gmail SMTP has sending limits intended for personal/small-scale use (roughly 500 emails/day). If
+consultation volume ever outgrows that, swap in a transactional provider (Resend, SendGrid,
+Postmark) — only `src/lib/notify.ts` would need to change, nothing else.
+
+### WhatsApp setup (Meta WhatsApp Cloud API)
+
+This is the more involved one, and worth understanding before you start: **both of these messages
+are business-initiated** (the admin alert and the client confirmation are both sent before the
+recipient has messaged your business number), and WhatsApp requires business-initiated messages to
+use a **pre-approved message template** — free-form text only works within 24 hours of the
+recipient messaging you first. There's no way around this; it's a WhatsApp platform rule, not a
+limitation of this code.
+
+**1. Create the Meta app and test number**
+
+1. Go to [developers.facebook.com](https://developers.facebook.com) → create a Meta Business
+   account if you don't have one → **My Apps → Create App → Business** type.
+2. Add the **WhatsApp** product to the app. Meta gives you a free test phone number and a
+   temporary access token immediately — enough to test with before applying for a permanent token
+   or your own business phone number.
+3. From the WhatsApp → API Setup page, note down:
+   - **Phone number ID** → `WHATSAPP_PHONE_NUMBER_ID`
+   - **Temporary access token** → `WHATSAPP_ACCESS_TOKEN` (this expires in 24h during testing;
+     under **System Users** in Business Settings you can generate a permanent token once you're
+     ready for production)
+
+**2. Create the two message templates**
+
+WhatsApp Manager (inside Meta Business Suite) → **Account tools → Message templates → Create
+template**. Create both of these as **Utility** category templates:
+
+- `skywalkers_admin_alert` — body text:
+  > New consultation from {{1}} via {{2}}. Contact: {{3}}.
+- `skywalkers_client_confirmation` — body text:
+  > Hi {{1}}, thanks for reaching out to {{2}} at Skywalkers Ltd. We've received your request and will get back to you shortly.
+
+Submit both for review. Utility-category templates are usually approved within a few minutes to a
+few hours; you'll be notified in Meta Business Suite either way.
+
+**3. Configure and test**
+
+```
+WHATSAPP_ACCESS_TOKEN=<from step 1>
+WHATSAPP_PHONE_NUMBER_ID=<from step 1>
+ADMIN_WHATSAPP_NUMBER=254791994833
+```
+
+During testing with the free test number, Meta restricts you to sending to a short list of
+verified "test recipient" numbers (add yours under WhatsApp → API Setup → "To" field). This
+restriction lifts once you move to a real business phone number and complete Meta's business
+verification — required for production use regardless of this codebase.
+
+**Client-side phone number matching:** `sendClientWhatsApp` only sends when `contact` parses as a
+Kenyan number (`07XX...`/`01XX...` or already in `2547XX.../2541XX...` format) — matching this
+business's market. If a client submits an email instead of a phone number, they get the email
+confirmation instead, not a WhatsApp message; that's intentional, not a bug.
+
 ## Storage
 
 Consultations are stored via `src/lib/store.ts`, which picks one of two backends automatically —

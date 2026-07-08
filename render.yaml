@@ -28,6 +28,22 @@ services:
           type: web
           name: skywalkers-frontend
           envVarKey: RENDER_EXTERNAL_URL
+      # Notifications — all set during the Blueprint creation flow. See
+      # "Email setup" and "WhatsApp setup" in backend/README.md for how to get
+      # these values. Leave any of them blank and that channel is skipped
+      # automatically rather than failing consultation submissions.
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_APP_PASSWORD
+        sync: false
+      - key: ADMIN_NOTIFY_EMAIL
+        sync: false
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+      - key: ADMIN_WHATSAPP_NUMBER
+        sync: false
 
   # --- Frontend static site --------------------------------------------------
   - type: web
