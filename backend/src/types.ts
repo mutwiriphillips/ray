@@ -8,6 +8,7 @@ export interface Consultation {
   contact: string;
   division: Division;
   message: string;
+  services: string[];
   status: ConsultationStatus;
   createdAt: string;
   updatedAt: string;
@@ -24,6 +25,7 @@ export interface CreateConsultationInput {
   contact: string;
   division: Division;
   message: string;
+  services: string[];
 }
 
 export interface ConsultationStore {

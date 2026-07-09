@@ -52,6 +52,7 @@ export const fileStore: ConsultationStore = {
       contact: input.contact,
       division: input.division,
       message: input.message,
+      services: input.services,
       status: "new",
       createdAt: now,
       updatedAt: now,

@@ -9,6 +9,19 @@ const DIVISION_LABEL: Record<Division, string> = {
 const ADMIN_EMAIL = process.env.ADMIN_NOTIFY_EMAIL || "mutwiriphillips@gmail.com";
 const ADMIN_WHATSAPP = process.env.ADMIN_WHATSAPP_NUMBER; // digits only, country code, no + — e.g. 254791994833
 
+// "3 services requested: X, Y, Z" / "" if the cart/checkout flow wasn't used for this submission.
+function servicesSummary(c: Consultation): string {
+  if (!c.services.length) return "";
+  return `Services requested (${c.services.length}): ${c.services.join(", ")}`;
+}
+
+// Short form for the WhatsApp division/summary placeholder — keeps the same
+// template parameter count as before, just enriches the text in that slot.
+function divisionWithCount(c: Consultation): string {
+  const division = DIVISION_LABEL[c.division];
+  return c.services.length ? `${division} (${c.services.length} services)` : division;
+}
+
 // ---------------------------------------------------------------------------
 // Email (Gmail SMTP via Nodemailer)
 // ---------------------------------------------------------------------------
@@ -45,6 +58,7 @@ export async function sendAdminEmail(c: Consultation) {
     ``,
     `Name: ${c.name}`,
     `Contact: ${c.contact}`,
+    ...(c.services.length ? [servicesSummary(c)] : []),
     `Message: ${c.message || "(none)"}`,
     `Received: ${new Date(c.createdAt).toLocaleString()}`,
     ``,
@@ -55,6 +69,7 @@ export async function sendAdminEmail(c: Consultation) {
       <h2 style="color:#16233A;">New ${division} consultation</h2>
       <p><strong>Name:</strong> ${escapeHtml(c.name)}</p>
       <p><strong>Contact:</strong> ${escapeHtml(c.contact)}</p>
+      ${c.services.length ? `<p><strong>Services requested:</strong></p><ul>${c.services.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>` : ""}
       <p><strong>Message:</strong> ${escapeHtml(c.message || "(none)")}</p>
       <p style="color:#6B6153; font-size: 13px;">Received ${new Date(c.createdAt).toLocaleString()}</p>
     </div>`;
@@ -70,6 +85,7 @@ export async function sendClientEmail(c: Consultation) {
     ``,
     `Thanks for reaching out to ${division} at Skywalkers Ltd. We've received your request and`,
     `will get back to you shortly.`,
+    ...(c.services.length ? [``, servicesSummary(c)] : []),
     ``,
     `— Skywalkers Ltd`,
   ].join("\n");
@@ -78,6 +94,7 @@ export async function sendClientEmail(c: Consultation) {
       <p>Hi ${escapeHtml(c.name)},</p>
       <p>Thanks for reaching out to <strong>${division}</strong> at Skywalkers Ltd. We've received
       your request and will get back to you shortly.</p>
+      ${c.services.length ? `<p><strong>You requested:</strong></p><ul>${c.services.map((s) => `<li>${escapeHtml(s)}</li>`).join("")}</ul>` : ""}
       <p>— Skywalkers Ltd</p>
     </div>`;
   await sendEmail(c.contact, subject, text, html);
@@ -137,16 +154,14 @@ function normalizeKenyanNumber(raw: string): string | null {
 
 export async function sendAdminWhatsApp(c: Consultation) {
   if (!ADMIN_WHATSAPP) return;
-  const division = DIVISION_LABEL[c.division];
-  await sendWhatsAppTemplate(ADMIN_WHATSAPP, "skywalkers_admin_alert", [c.name, division, c.contact]);
+  await sendWhatsAppTemplate(ADMIN_WHATSAPP, "skywalkers_admin_alert", [c.name, divisionWithCount(c), c.contact]);
 }
 
 export async function sendClientWhatsApp(c: Consultation) {
   if (c.contact.includes("@")) return; // contact is an email, not a phone number
   const to = normalizeKenyanNumber(c.contact);
   if (!to) return; // couldn't confidently parse a Kenyan number — skip rather than send to the wrong recipient
-  const division = DIVISION_LABEL[c.division];
-  await sendWhatsAppTemplate(to, "skywalkers_client_confirmation", [c.name, division]);
+  await sendWhatsAppTemplate(to, "skywalkers_client_confirmation", [c.name, divisionWithCount(c)]);
 }
 
 // ---------------------------------------------------------------------------

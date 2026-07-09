@@ -27,6 +27,7 @@ const createSchema = z.object({
   contact: z.string().trim().min(5, "Add a phone number or email").max(160),
   division: z.enum(["digitizebiz", "citizenease"]),
   message: z.string().trim().max(2000).optional().default(""),
+  services: z.array(z.string().trim().min(1).max(160)).max(30).optional().default([]),
   // Honeypot field — real users never fill this in; bots that fill every field will.
   website: z.string().max(0).optional().default(""),
 });
@@ -48,6 +49,7 @@ router.post("/", submitLimiter, async (req, res, next) => {
       contact: parsed.data.contact,
       division: parsed.data.division,
       message: parsed.data.message,
+      services: parsed.data.services,
     });
     // Notifications are best-effort: notifyNewConsultation catches its own errors internally
     // (see Promise.allSettled in lib/notify.ts) and never throws, so a failed email/WhatsApp

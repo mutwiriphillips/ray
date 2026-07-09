@@ -55,29 +55,31 @@ npm run preview
 
 ```
 src/
-  App.tsx                   Router setup: public layout (Home/DigitizeBiz/CitizenEase) + /admin
+  App.tsx                   Router setup: public layout (Home/DigitizeBiz/CitizenEase/Cart) + /admin
   components/
-    Nav.tsx                  Top nav + division links + theme toggle
+    Nav.tsx                  Top nav + division links + cart icon (with live item count) + theme toggle
     Footer.tsx                Shared footer (includes a discreet Admin link)
-    PublicLayout.tsx          Wraps the three public pages with Nav + Footer
+    PublicLayout.tsx          Wraps the public pages with Nav + Footer
     ui.tsx                    Shared primitives: Btn, Card, Pill, Eyebrow, cn
-    ContactBlock.tsx          Consultation form — POSTs to the backend, shows loading/success/error
+    ContactBlock.tsx          General consultation form — POSTs to the backend, shows loading/success/error
     DigitizationPreview.tsx   DigitizeBiz signature tool — draggable ledger → dashboard slider
     ROICalculator.tsx         DigitizeBiz signature tool — monthly value-recovered calculator
     DocumentChecklist.tsx     CitizenEase signature tool — required-documents checklist per service
     theme-provider.tsx        next-themes wrapper (light/dark)
   pages/
     Home.tsx                  Skywalkers Ltd homepage — links into the two divisions
-    DigitizeBiz.tsx            Division A page
-    CitizenEase.tsx            Division B page
+    DigitizeBiz.tsx            Division A page — each service card has an Add to cart button
+    CitizenEase.tsx            Division B page — each category item has an Add to cart button
+    Cart.tsx                    Cart & checkout — per-item checklist, submits to the admin pipeline
     AdminPage.tsx               /admin — renders AdminLogin or AdminDashboard based on auth state
     AdminLogin.tsx               Password sign-in form
-    AdminDashboard.tsx           Consultations table: filter, update status, delete
+    AdminDashboard.tsx           Consultations table: filter, update status, delete, shows selected services
   lib/
     api.ts                     Typed fetch client for the backend
     auth.tsx                   Admin auth context (JWT kept in localStorage)
+    cart.tsx                   Cart context — persists selected services in localStorage
   data/
-    services.ts                 DigitizeBiz service list + CitizenEase categories/documents
+    services.ts                 DigitizeBiz service list + CitizenEase categories, both with docs[]
 
 backend/
   src/app.ts                    Express app factory (routes/middleware — no .listen())
@@ -100,6 +102,28 @@ api/
   divisions stay visually distinct while sharing the same masterbrand shell.
 - **Typography**: Fraunces (display) + Inter (body), loaded via Google Fonts in `index.html`.
 - **Dark mode**: via `next-themes`, toggled from the nav.
+
+## Cart & checkout
+
+Every service on both division pages — the 11 DigitizeBiz cards and every individual item under
+each CitizenEase category — has an **Add to cart** button. The cart (`src/lib/cart.tsx`) persists
+in `localStorage`, so it survives navigation between pages and page reloads, and is shared across
+both divisions.
+
+At `/cart`, each item shows its own document checklist (the same required-documents data used by
+CitizenEase's Document Checklist tool and now also attached to every DigitizeBiz service) with
+checkboxes — purely for the client's own reference before checkout, not a gate on submitting.
+
+Checkout asks for name, contact, and an optional message once, then submits — internally, one
+`POST /api/consultations` per division present in the cart, each carrying its own `services[]`
+list, so a cart spanning both divisions cleanly becomes up to two consultations, each in the right
+division's admin queue, rather than one ambiguous mixed request. This is additive: the existing
+free-form contact forms on each division page still work exactly as before, for general enquiries
+that aren't about a specific listed service — `services` is simply empty on those.
+
+The admin dashboard's **Services** column shows what was selected via cart checkout, and stays
+empty (`—`) for plain contact-form submissions, so the two request types stay visually distinct
+without needing separate tables.
 
 ## Deploying to Render
 

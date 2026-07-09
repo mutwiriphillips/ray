@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 const password = process.argv[2];
 
 if (!password) {
-  console.error("Usage: npm run hash-password -- "Mutwiri27");
+  console.error("Usage: npm run hash-password -- <your-new-admin-password>");
   process.exit(1);
 }
 
