@@ -31,7 +31,9 @@ They run as two separate processes, talking over HTTP.
 cd backend
 npm install
 cp .env.example .env
-npm run hash-password -- "choose-a-strong-password"   # paste result into .env as ADMIN_PASSWORD_HASH
+# Temporary: hash-password script removed for this trial run — generate inline instead:
+node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "choose-a-strong-password"
+# paste the printed hash into .env as ADMIN_PASSWORD_HASH
 # also set JWT_SECRET in .env — see backend/README.md
 npm run dev            # starts on http://localhost:4000
 
@@ -139,9 +141,11 @@ this project to a GitHub, GitLab, or Bitbucket repo first.
 2. In the Render Dashboard: **New → Blueprint**, and connect that repo. Render reads
    `render.yaml` from the repo root automatically.
 3. Render will prompt you for `ADMIN_PASSWORD_HASH` plus the notification variables (all marked
-   `sync: false` in `render.yaml`). Generate the password hash locally first:
+   `sync: false` in `render.yaml`). Generate the password hash locally first (the `hash-password`
+   script is temporarily removed for this trial run, so this generates it inline instead):
    ```bash
-   cd backend && npm install && npm run hash-password -- "choose-a-strong-password"
+   cd backend && npm install
+   node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "choose-a-strong-password"
    ```
    Paste the printed hash in when Render asks for it. (`JWT_SECRET` is generated for you
    automatically; `FRONTEND_ORIGIN` and `VITE_API_URL` are filled in from each service's actual
@@ -232,7 +236,7 @@ store otherwise. You don't need to change any code — just connect the integrat
    implementation.
 4. Under **Settings → Environment Variables**, add:
    - `ADMIN_PASSWORD_HASH` — generate it the same way as for Render:
-     `cd backend && npm install && npm run hash-password -- "your-password"`
+     `cd backend && npm install && node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "your-password"`
    - `JWT_SECRET` — any long random string (e.g. `openssl rand -hex 32`)
    - `FRONTEND_ORIGIN` — your Vercel deployment's own URL (e.g.
      `https://your-project.vercel.app`); CORS is same-origin here so this mostly matters if you
