@@ -11,7 +11,7 @@ npm install
 cp .env.example .env
 # Temporary: the hash-password script was removed for this trial run (to be re-added later).
 # Generate the hash inline instead — run from inside backend/, after npm install:
-node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "Mutwiri27"
+node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "choose-a-strong-password"
 # Paste the printed hash into .env as ADMIN_PASSWORD_HASH
 # also set JWT_SECRET in .env to any long random string, e.g.:
 #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
@@ -170,11 +170,21 @@ Admin routes require `Authorization: Bearer <token>` from `/api/auth/login`.
 
 ## Security notes
 
+> **⚠️ Admin login is currently disabled (trial run).** `/admin` on the frontend and the
+> `GET`/`PATCH`/`DELETE /api/consultations` routes below have no auth check right now — anyone
+> with the URL can view, edit, or delete every client's name, contact details, and messages. This
+> was an explicit, deliberate change, not a bug — but it means this app should not be handling
+> real client data in this state. To re-enable: uncomment the `requireAdmin` import and add it
+> back to the three routes in `src/routes/consultations.ts` (each has a `NOTE:` comment marking
+> the spot), and revert `src/pages/AdminPage.tsx` on the frontend to check `useAuth()` again
+> (also commented, with the original line preserved).
+
 - **Single admin account.** Password is never stored in plaintext — only a bcrypt hash in
   `ADMIN_PASSWORD_HASH`. There's no user database or self-registration by design (this is a
   one-person or small-team admin panel).
-- **JWT** issued on login, 12h expiry, verified on every admin request. If `JWT_SECRET` or
-  `ADMIN_PASSWORD_HASH` are unset, admin routes fail closed (500), not open.
+- **JWT** issued on login, 12h expiry, verified on every admin request *when the check above is
+  re-enabled*. If `JWT_SECRET` or `ADMIN_PASSWORD_HASH` are unset, admin routes fail closed (500),
+  not open — this only applies once `requireAdmin` is back on the routes.
 - **Rate limiting**: the public submission endpoint allows 1 request per 30s per IP; login allows
   10 attempts per 15 minutes per IP.
 - **Honeypot field** (`website`) on the public submission endpoint silently drops obvious bot
@@ -183,6 +193,8 @@ Admin routes require `Authorization: Bearer <token>` from `/api/auth/login`.
 - **Helmet** sets standard security headers.
 - Input is validated with `zod` on every write endpoint; nothing from the request body reaches the
   store unvalidated.
+- `/admin` is excluded from search engine indexing via `public/robots.txt` — a minimal safety net
+  against casual discovery, not a substitute for the auth check above.
 
 ## Build & run in production
 

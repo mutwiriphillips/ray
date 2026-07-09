@@ -3,7 +3,10 @@ import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { consultationStore } from "../lib/store.js";
 import { notifyNewConsultation } from "../lib/notify.js";
-import { requireAdmin } from "../middleware/auth.js";
+// requireAdmin is currently unused — the admin routes below are open for this trial run.
+// To re-enable: add `requireAdmin,` back as the second argument on the GET/PATCH/DELETE routes
+// below, and uncomment this import. See src/pages/AdminPage.tsx for the matching frontend half.
+// import { requireAdmin } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errorHandler.js";
 import type { ConsultationStatus, Division } from "../types.js";
 
@@ -62,7 +65,8 @@ router.post("/", submitLimiter, async (req, res, next) => {
 });
 
 // GET /api/consultations — admin dashboard list, with optional filters.
-router.get("/", requireAdmin, async (req, res, next) => {
+// NOTE: open for this trial run — see the import comment above.
+router.get("/", async (req, res, next) => {
   const division = req.query.division;
   const status = req.query.status;
 
@@ -89,7 +93,8 @@ const updateSchema = z.object({
 });
 
 // PATCH /api/consultations/:id — admin updates the status of a consultation.
-router.patch("/:id", requireAdmin, async (req, res, next) => {
+// NOTE: open for this trial run — see the import comment above.
+router.patch("/:id", async (req, res, next) => {
   const parsed = updateSchema.safeParse(req.body);
   if (!parsed.success) {
     return res.status(400).json({ error: "status must be one of: " + STATUSES.join(", ") });
@@ -104,7 +109,8 @@ router.patch("/:id", requireAdmin, async (req, res, next) => {
 });
 
 // DELETE /api/consultations/:id — admin removes a consultation.
-router.delete("/:id", requireAdmin, async (req, res, next) => {
+// NOTE: open for this trial run — see the import comment above.
+router.delete("/:id", async (req, res, next) => {
   try {
     const removed = await consultationStore.remove(req.params.id);
     if (!removed) return res.status(404).json({ error: "Consultation not found" });
