@@ -11,7 +11,7 @@ npm install
 cp .env.example .env
 # Temporary: the hash-password script was removed for this trial run (to be re-added later).
 # Generate the hash inline instead — run from inside backend/, after npm install:
-node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "choose-a-strong-password"
+node --input-type=commonjs -e "console.log(require('bcryptjs').hashSync(process.argv[1], 12))" "Mutwiri27"
 # Paste the printed hash into .env as ADMIN_PASSWORD_HASH
 # also set JWT_SECRET in .env to any long random string, e.g.:
 #   node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
